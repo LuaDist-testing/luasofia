@@ -1,0 +1,6 @@
+ACLOCAL_AMFLAGS = -I m4
+
+EXTRA_DIST = doc test
+
+SUBDIRS = src
+
