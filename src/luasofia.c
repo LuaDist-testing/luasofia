@@ -26,6 +26,7 @@
 #include "utils/luasofia_userdata_table.h"
 #include "utils/luasofia_tags.h"
 #include "utils/luasofia_proxy.h"
+#include "utils/luasofia_log.h"
 
 static const struct luaL_reg core_lib[] = {
   {NULL, NULL},
@@ -34,8 +35,9 @@ static const struct luaL_reg core_lib[] = {
 int luaopen_sofia(lua_State *L)
 { 
     lua_getglobal(L, "sofia");
-    if(!lua_isnil(L, -1))
+    if(!lua_isnil(L, -1)) {
         return 1;
+    }
 
     /* create luasofia userdata table at REGISTRYINDEX */
     luasofia_userdata_table_create(L);

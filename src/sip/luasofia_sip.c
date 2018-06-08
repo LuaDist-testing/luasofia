@@ -2,6 +2,7 @@
 /*
  * @author Paulo Pizarro  <paulo.pizarro@gmail.com>
  * @author Tiago Katcipis <tiagokatcipis@gmail.com>
+ * @author Guilherme Silveira <xguiga@gmail.com>
  *
  * This file is part of Luasofia.
  *
@@ -30,6 +31,7 @@
 
 #include <sofia-sip/sip.h>
 #include <sofia-sip/sip_tag.h>
+#include <sofia-sip/sip_status.h>
 
 #include "luasofia_sip_addr_private.h"
 #include "luasofia_sip_contact_private.h"
@@ -44,22 +46,34 @@
 #include "luasofia_sip_allow_private.h"
 #include "luasofia_sip_call_id_private.h"
 #include "luasofia_sip_authenticate_private.h"
+#include "luasofia_sip_subscription_state_private.h"
+#include "luasofia_sip_msg_payload_private.h"
 
+static int luasofia_sip_status_phrase(lua_State *L)
+{
+    int status = lua_tointeger(L, -1);
+    char const *phrase = sip_status_phrase(status);
+    lua_pushstring(L, phrase);
+    return 1;
+}
 
 static const luaL_Reg sip_lib[] = {
-    {"get_proxy",                luasofia_sip_get_proxy },
-    {"get_proxy_addr",           luasofia_sip_get_proxy_addr },
-    {"get_proxy_contact",        luasofia_sip_get_proxy_contact },
-    {"get_proxy_request",        luasofia_sip_get_proxy_request },
-    {"get_proxy_via",            luasofia_sip_get_proxy_via },
-    {"get_proxy_status",         luasofia_sip_get_proxy_status },
-    {"get_proxy_event",          luasofia_sip_get_proxy_event },
-    {"get_proxy_content_type",   luasofia_sip_get_proxy_content_type },
-    {"get_proxy_content_length", luasofia_sip_get_proxy_content_length },
-    {"get_proxy_accept",         luasofia_sip_get_proxy_accept },
-    {"get_proxy_allow",          luasofia_sip_get_proxy_allow },
-    {"get_proxy_call_id",        luasofia_sip_get_proxy_call_id },
-    {"get_proxy_authenticate",   luasofia_sip_get_proxy_authenticate },
+    {"get_proxy",                    luasofia_sip_get_proxy },
+    {"get_proxy_addr",               luasofia_sip_get_proxy_addr },
+    {"get_proxy_contact",            luasofia_sip_get_proxy_contact },
+    {"get_proxy_request",            luasofia_sip_get_proxy_request },
+    {"get_proxy_via",                luasofia_sip_get_proxy_via },
+    {"get_proxy_status",             luasofia_sip_get_proxy_status },
+    {"get_proxy_event",              luasofia_sip_get_proxy_event },
+    {"get_proxy_content_type",       luasofia_sip_get_proxy_content_type },
+    {"get_proxy_content_length",     luasofia_sip_get_proxy_content_length },
+    {"get_proxy_accept",             luasofia_sip_get_proxy_accept },
+    {"get_proxy_allow",              luasofia_sip_get_proxy_allow },
+    {"get_proxy_call_id",            luasofia_sip_get_proxy_call_id },
+    {"get_proxy_authenticate",       luasofia_sip_get_proxy_authenticate },
+    {"get_proxy_subscription_state", luasofia_sip_get_proxy_subscription_state },
+    {"get_proxy_msg_payload",        luasofia_sip_get_proxy_msg_payload },
+    {"status_phrase",                luasofia_sip_status_phrase },
     {NULL, NULL}
 };
 
@@ -243,6 +257,8 @@ int luaopen_sofia_sip(lua_State *L)
     luasofia_proxy_register_info_table(L, SIP_ALLOW_TABLE_NAME, sip_allow_info);
     luasofia_proxy_register_info_table(L, SIP_CALL_ID_TABLE_NAME, sip_call_id_info);
     luasofia_proxy_register_info_table(L, SIP_AUTHENTICATE_TABLE_NAME, sip_authenticate_info);
+    luasofia_proxy_register_info_table(L, SIP_SUBSCRIPTION_STATE_TABLE_NAME, sip_subscription_state_info);
+    luasofia_proxy_register_info_table(L, SIP_MSG_PAYLOAD_TABLE_NAME, sip_msg_payload_info);
 
     luasofia_const_register_constants(L, sip_constants);
 

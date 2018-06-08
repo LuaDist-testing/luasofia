@@ -2,6 +2,7 @@
 /*
  * @author Paulo Pizarro  <paulo.pizarro@gmail.com>
  * @author Tiago Katcipis <tiagokatcipis@gmail.com>
+ * @author Guilherme Silveira <xguiga@gmail.com>
  *
  * This file is part of Luasofia.
  *
@@ -19,10 +20,21 @@
  * along with Luasofia.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LUASOFIA_SU_H__
-#define __LUASOFIA_SU_H__
+#ifndef __LUASOFIA_SIP_MSG_PAYLOAD_PRIVATE_H__
+#define __LUASOFIA_SIP_MSG_PAYLOAD_PRIVATE_H__
 
-int luaopen_luasofia_su(lua_State *L);
+#define SIP_MSG_PAYLOAD_TABLE_NAME "luasofia_sip_msg_payload_t" 
 
-#endif //__LUASOFIA_SU_H_
+static const luasofia_proxy_info_t sip_msg_payload_info[] = {
+{"pl_next", luasofia_proxy_get_pointer, offsetof(msg_payload_t, pl_next), 0},
+{"pl_data", luasofia_proxy_get_string, offsetof(msg_payload_t, pl_data), 0},
+{"pl_len",  luasofia_proxy_get_int, offsetof(msg_payload_t, pl_len), 0},
+{NULL, NULL, 0 }
+};
 
+static int luasofia_sip_get_proxy_msg_payload(lua_State *L)
+{
+    return luasofia_proxy_create(L, SIP_MSG_PAYLOAD_TABLE_NAME);
+}
+
+#endif //__LUASOFIA_SIP_MSG_PAYLOAD_PRIVATE_H__

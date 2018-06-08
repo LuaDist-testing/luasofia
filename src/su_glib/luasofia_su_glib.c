@@ -24,8 +24,9 @@
 
 #include <sofia-sip/su_glib.h>
 
+#include "luasofia.h"
+
 #include "su_glib/luasofia_su_glib_root.h"
-#include "su/luasofia_su.h"
 
 static int luasofia_su_glib_prefer_gsource(lua_State *L)
 {
@@ -41,7 +42,7 @@ static const luaL_Reg luasofia_glib_lib[] = {
 
 int luaopen_sofia_glib(lua_State *L)
 {
-    luaopen_sofia_su(L);
+    luaopen_sofia(L);
 
     luasofia_su_glib_root_register_meta(L);
 

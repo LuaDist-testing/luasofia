@@ -31,6 +31,13 @@
 
 #define LUASOFIA_TAGS_META "luasofia_tags"
 
+int luasofia_su_tags_get_table(lua_State *L)
+{
+    void *p = lua_touserdata(L, -1);
+    luaL_argcheck(L, p != NULL, -1, "lightuserdata expected");
+    return luasofia_tags_taglist_to_table(L, p);
+}
+
 int luasofia_su_tags_get_proxy(lua_State *L)
 {
     void **ust = NULL;
@@ -53,7 +60,7 @@ static int luasofia_su_tags_index(lua_State *L)
     tagi_t *tags = NULL;
 
     /* stack has userdata, index */
-    void** ust = luaL_checkudata(L, 1, LUASOFIA_TAGS_META);
+    void** ust = luaL_checkudata(L, -2, LUASOFIA_TAGS_META);
     tags = *ust;
 
     if(!tags)

@@ -18,13 +18,13 @@
 -- along with Luasofia.  If not, see <http://www.gnu.org/licenses/>.
 ------------------------------------------------------------------------------
 
-su = require "sofia.su"
-nua = require "sofia.nua"
-sip = require "sofia.sip"
-soa = require "sofia.soa"
-url = require "sofia.url"
-sdp = require "sofia.sdp"
-tport = require "sofia.tport"
+local su    = require "sofia.su"
+local nua   = require "sofia.nua"
+local sip   = require "sofia.sip"
+local soa   = require "sofia.soa"
+local url   = require "sofia.url"
+local sdp   = require "sofia.sdp"
+local tport = require "sofia.tport"
 
 local callbacks = {}
 
@@ -78,10 +78,19 @@ callbacks[nua.nua_i_state] = function (event, status, phrase, ua, magic, nh, hma
                                  end
                              end
 
+callbacks[nua.nua_i_terminated] = function (event, status, phrase, ua, magic, nh, hmagic, sip_lu, tags)
+                                      if nh then
+                                          nh:destroy()
+                                      end
+                                  end
+
 callbacks[nua.nua_r_shutdown] = function (event, status, phrase, ua, magic, nh, hmagic, sip_lu, tags)
                                     print("nua_r_shutdown: status["..status.."] phrase["..phrase.."]")
-                                    if (magic and status == 200) then
-                                        magic.quit = true
+                                    if status >= 200 then
+                                        if magic then
+                                            magic.quit = true
+                                        end
+                                        ua:destroy()
                                     end
                                 end
 
@@ -116,9 +125,10 @@ local function make_user_agent(root, username, sip_port, rtp_port, obj)
     end
 
     ua:set_params({ NUTAG_ENABLEINVITE = 1,
-                    NUTAG_AUTOALERT = 1,
-                    NUTAG_SESSION_TIMER = 0,
+                    NUTAG_AUTOALERT = 0,
                     NUTAG_AUTOANSWER = 0,
+                    NUTAG_AUTOACK = 0,
+                    NUTAG_SESSION_TIMER = 0,
                     SOATAG_USER_SDP_STR = "m=audio "..rtp_port.." RTP/AVP 0 8\r\n"..
                                           "a=rtpmap:0 PCMU/8000\r\n"..
                                           "a=rtpmap:8 PCMA/8000\r\n"
@@ -130,12 +140,12 @@ su.init()
 
 local root = su.root_create()
 
+root:threading(false)
+
 local a_obj = { quit = false }
 local b_obj = { quit = false }
 
 local ua_a = make_user_agent(root, "1000", 5090, 4000, a_obj )
-
-ua_a:destroy()
 
 local ua_b = make_user_agent(root, "1001", 5080, 5000, b_obj )
 

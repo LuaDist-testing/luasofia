@@ -28,6 +28,7 @@
 #include "utils/luasofia_userdata_table.h"
 #include "utils/luasofia_tags.h"
 #include "utils/luasofia_const.h"
+#include "utils/luasofia_log.h"
 #include "nua/luasofia_nua_handle.h"
 
 #include <sofia-sip/nua.h>
@@ -60,6 +61,18 @@ static int luasofia_nua_set_params(lua_State *L)
     return 0;
 }
 
+static int luasofia_nua_get_params(lua_State *L)
+{
+    /* get and check first argument (should be a luasofia_nua_t) */
+    su_home_t *home = su_home_create();
+    luasofia_nua_t *lnua = (luasofia_nua_t*)luaL_checkudata(L, 1, NUA_MTABLE);
+    tagi_t *tags = luasofia_tags_table_to_taglist(L, 2, home);
+
+    nua_get_params(lnua->nua, TAG_NEXT(tags));
+    su_home_unref(home);
+    return 0;
+}
+
 static int luasofia_nua_create_handle(lua_State *L)
 {
     luasofia_nua_t *lnua = NULL;
@@ -76,6 +89,9 @@ static int luasofia_nua_destroy(lua_State *L)
     luasofia_nua_t *lnua = (luasofia_nua_t*)luaL_checkudata(L, 1, NUA_MTABLE);
 
     if (lnua->nua) {
+        /* remove nua of the luasofia userdata table */
+        luasofia_userdata_table_remove(L, lnua->nua);
+
         // TODO test if shutdown complete before call nua_destroy
         nua_destroy(lnua->nua);
         lnua->nua = NULL;
@@ -99,25 +115,22 @@ static void nua_event_callback(nua_event_t event,
                                sip_t const *sip,
                                tagi_t tags[])
 {
+    int error;
     lua_State *L = (lua_State *)magic;
 
-    //printf("nua: event[%d] status[%d] phrase[%s] nua[%p] magic[%p] sip[%p] tags[%p]\n",
-    //       event, status, phrase, nua, magic, sip, tags);
+    SU_DEBUG_9(("nua_event_callback: event[%s] status[%d] phrase[%s] "
+                "nua[%p] magic[%p] nh[%p] hmagic[%p] sip[%p] tags[%p]\n",
+                nua_event_name(event), status, phrase, nua, magic, nh, hmagic, sip, tags));
 
     /* put nua userdatum at stack and check if it is ok. */
     luasofia_userdata_table_get(L, nua);
 
     if (lua_isnil(L, -1)) {
-        //printf("nua userdata not found on userdata_table!\n");
+        SU_DEBUG_1(("nua_event_callback: nua userdata not found on userdata_table!\n"));
         return;
     }
 
     luaL_checkudata(L, -1, NUA_MTABLE);
-
-    if (event == nua_r_shutdown && status >= 200) {
-        /* remove nua of the luasofia userdata table */
-        luasofia_userdata_table_remove(L, nua);
-    }
 
     /* put env table at stack */
     lua_getfenv(L, -1);
@@ -126,6 +139,7 @@ static void nua_event_callback(nua_event_t event,
     lua_rawgeti(L, -1, ENV_CALLBACK_INDEX);
     if (lua_isnil(L, -1)) {
         lua_pop(L, 3);
+        SU_DEBUG_1(("nua_event_callback: callback table not found!\n"));
         return;
     }
 
@@ -137,6 +151,7 @@ static void nua_event_callback(nua_event_t event,
         lua_rawgeti(L, -1, NUA_EVENT_DEFAULT_INDEX);
         if (lua_isnil(L, -1)) {
             lua_pop(L, 4);
+            SU_DEBUG_9(("nua_event_callback: event[%s] callback not found!\n", nua_event_name(event)));
             return;
         }
     }
@@ -173,7 +188,14 @@ static void nua_event_callback(nua_event_t event,
 
     tags ? lua_pushlightuserdata(L, (void*)tags) : lua_pushnil(L);
 
-    lua_call(L, 9, 0);
+    SU_DEBUG_9(("nua_event_callback: calling lua callback\n"));
+    if ((error = lua_pcall(L, 9, 0, 0)) != 0) {
+        if (error == LUA_ERRMEM) 
+            SU_DEBUG_0(("nua_event_callback: memory allocation error! error[%s]\n", lua_tostring(L, -1)));
+        else
+            SU_DEBUG_1(("nua_event_callback: error on calling callback! error[%s]\n", lua_tostring(L, -1)));
+        lua_pop(L, 1);
+    }
     lua_pop(L, 3);
 }
 
@@ -242,17 +264,27 @@ static int luasofia_nua_event_name(lua_State *L)
     return 1;
 }
 
+static int luasofia_nua_callstate_name(lua_State *L)
+{
+    enum nua_callstate call_state = lua_tointeger(L, -1);
+    char const *name = nua_callstate_name(call_state);
+    lua_pushstring(L, name);
+    return 1;
+}
+
 static const luaL_Reg nua_meths[] = {
     {"set_params",    luasofia_nua_set_params },
+    {"get_params",    luasofia_nua_get_params },
     {"handle_create", luasofia_nua_create_handle },
     {"shutdown",      luasofia_nua_shutdown },
-    {"__gc",          luasofia_nua_destroy },
+    {"destroy",       luasofia_nua_destroy },
     {NULL, NULL}
 };
 
 static const luaL_Reg nua_lib[] = {
-    {"create", luasofia_nua_create },
-    {"event_name", luasofia_nua_event_name },
+    {"create",         luasofia_nua_create },
+    {"event_name",     luasofia_nua_event_name },
+    {"callstate_name", luasofia_nua_callstate_name },
     {NULL, NULL}
 };
 
@@ -403,26 +435,26 @@ static const luasofia_reg_const_t nua_constants[] = {
     { "nua_r_authenticate", nua_r_authenticate },
     { "nua_i_network_changed", nua_i_network_changed },
     { "nua_i_register", nua_i_register },
-    { "nua_callstate_init", nua_callstate_init},
-    { "nua_callstate_authenticating", nua_callstate_authenticating},
-    { "nua_callstate_calling", nua_callstate_calling},
-    { "nua_callstate_proceeding", nua_callstate_proceeding},
-    { "nua_callstate_completing", nua_callstate_completing},
-    { "nua_callstate_received ", nua_callstate_received},
-    { "nua_callstate_early", nua_callstate_early},
-    { "nua_callstate_completed", nua_callstate_completed},
-    { "nua_callstate_ready", nua_callstate_ready},
-    { "nua_callstate_terminating", nua_callstate_terminating},
-    { "nua_callstate_terminated", nua_callstate_terminated},
-    { "nua_no_refresher", nua_no_refresher},
-    { "nua_local_refresher", nua_local_refresher},
-    { "nua_remote_refresher", nua_remote_refresher},
-    { "nua_any_refresher", nua_any_refresher},
-    { "nua_substate_extended", nua_substate_extended},
-    { "nua_substate_embryonic", nua_substate_embryonic},
-    { "nua_substate_pending", nua_substate_pending},
-    { "nua_substate_active", nua_substate_active},
-    { "nua_substate_terminated", nua_substate_terminated},
+    { "nua_callstate_init", nua_callstate_init },
+    { "nua_callstate_authenticating", nua_callstate_authenticating },
+    { "nua_callstate_calling", nua_callstate_calling },
+    { "nua_callstate_proceeding", nua_callstate_proceeding },
+    { "nua_callstate_completing", nua_callstate_completing },
+    { "nua_callstate_received", nua_callstate_received },
+    { "nua_callstate_early", nua_callstate_early },
+    { "nua_callstate_completed", nua_callstate_completed },
+    { "nua_callstate_ready", nua_callstate_ready },
+    { "nua_callstate_terminating", nua_callstate_terminating },
+    { "nua_callstate_terminated", nua_callstate_terminated },
+    { "nua_no_refresher", nua_no_refresher },
+    { "nua_local_refresher", nua_local_refresher },
+    { "nua_remote_refresher", nua_remote_refresher },
+    { "nua_any_refresher", nua_any_refresher },
+    { "nua_substate_extended", nua_substate_extended },
+    { "nua_substate_embryonic", nua_substate_embryonic },
+    { "nua_substate_pending", nua_substate_pending },
+    { "nua_substate_active", nua_substate_active },
+    { "nua_substate_terminated", nua_substate_terminated },
     {NULL, 0 }
 };
 

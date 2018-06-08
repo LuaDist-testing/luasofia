@@ -36,13 +36,12 @@ int luasofia_sdp_parser_parse(lua_State *L)
     su_home_t *home = su_home_create();
     luasofia_sdp_parser_t* l_parser = NULL;   
     /* get and check first argument (should be a string) */
-    const char* msg = luaL_checkstring (L, 1);
+    const char* msg = luaL_checkstring (L, -2);
     issize_t size   = (issize_t) strlen(msg);
     /* get and check second argument (should be a integer) */
-    int flags = luaL_checkinteger(L, 2);
+    int flags = luaL_checkinteger(L, -1);
     sdp_parser_t* parser = sdp_parse(home, msg, size, flags);
    
-    lua_pop(L, 2);
     if(!parser)
         return 0;
     
@@ -60,11 +59,18 @@ int luasofia_sdp_parser_parse(lua_State *L)
 static int luasofia_sdp_parse_get_session(lua_State *L)
 {
     /* get and check first argument (should be a sdp_parser udata) */
-    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, 1, SDP_PARSER_MTABLE);
-    sdp_session_t* session = sdp_session(lparser->parser);
-    
-    if(!session)
+    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, -1, SDP_PARSER_MTABLE);
+    sdp_session_t* session = NULL;
+   
+    if(!lparser->parser) {
         return 0;
+    } 
+
+    session = sdp_session(lparser->parser);
+
+    if(!session) {
+        return 0;
+    }
 
     /* Return sdp_session as lightuserdata*/
     lua_pushlightuserdata (L, session);
@@ -74,7 +80,7 @@ static int luasofia_sdp_parse_get_session(lua_State *L)
 static int luasofia_sdp_parse_print(lua_State *L)
 {
     /* get and check first argument (should be a sdp_parser udata) */
-    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, 1, SDP_PARSER_MTABLE);
+    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, -1, SDP_PARSER_MTABLE);
     char buffer[512];
     sdp_session_t* session = sdp_session(lparser->parser);
     char const* msg = NULL;
@@ -97,20 +103,15 @@ static int luasofia_sdp_parse_print(lua_State *L)
 
 static int luasofia_sdp_parse_destroy(lua_State *L)
 {
-    /* get and check first argument (should be a sdp_parser udata) */
-    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, 1, SDP_PARSER_MTABLE);  
-    int freed = 0;
+    /* get and check first argument (should be a sdp_parser udata) */ 
+    luasofia_sdp_parser_t* lparser = (luasofia_sdp_parser_t*) luaL_checkudata(L, -1, SDP_PARSER_MTABLE);  
+    
     if (lparser->home) {
-        freed = su_home_unref(lparser->home);
-        if (freed){
-            /* Freeing home already frees the parser */
-            lparser->home = NULL;
-            lparser->parser = NULL;
-        }
+        lparser->parser = NULL;
+        su_home_unref(lparser->home);
+        lparser->home = NULL;
     }
-
-    lua_pushinteger(L, freed);
-    return 1;
+    return 0;
 }
 
 static const luaL_Reg sdp_parser_meths[] = {

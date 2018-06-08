@@ -4,7 +4,7 @@ lib_LTLIBRARIES = liblua@LUA_VERSION@-sofia.la liblua@LUA_VERSION@-sofia-glib.la
 
 liblua@LUA_VERSION@_sofia_la_CFLAGS = -Werror -Wall $(SOFIA_SIP_UA_CFLAGS) $(LUA_CFLAGS) -I@includedir@
 
-liblua@LUA_VERSION@_sofia_la_LDFLAGS = -L@libdir@ $(SOFIA_SIP_UA_LIBS) $(LUA_LIBS) -version-info @LT_VERSION@
+liblua@LUA_VERSION@_sofia_la_LDFLAGS = -L@libdir@ $(SOFIA_SIP_UA_LIBS) -version-info @LT_VERSION@
 
 liblua@LUA_VERSION@_sofia_la_SOURCES = luasofia.c \
 	luasofia.h \
@@ -39,10 +39,11 @@ liblua@LUA_VERSION@_sofia_la_SOURCES = luasofia.c \
 	sip/luasofia_sip_content_length_private.h \
 	sip/luasofia_sip_content_type_private.h \
 	sip/luasofia_sip_authenticate_private.h \
+	sip/luasofia_sip_subscription_state_private.h \
+	sip/luasofia_sip_msg_payload_private.h \
 	soa/luasofia_soa.c \
 	tport/luasofia_tport.c \
 	su/luasofia_su.c \
-	su/luasofia_su.h \
 	su/luasofia_su_root.h \
 	su/luasofia_su_tags.h \
 	su/luasofia_su_task.h \
@@ -62,15 +63,15 @@ liblua@LUA_VERSION@_sofia_la_SOURCES = luasofia.c \
 	utils/luasofia_proxy.h \
 	utils/luasofia_tags.c \
 	utils/luasofia_tags.h \
-	utils/luasofia_utils.c \
-	utils/luasofia_utils.h \
+	utils/luasofia_log.c \
+	utils/luasofia_log.h \
 	utils/luasofia_userdata_table.c \
 	utils/luasofia_userdata_table.h
 
 
 liblua@LUA_VERSION@_sofia_glib_la_CFLAGS = -Wall $(SOFIA_SIP_UA_GLIB_CFLAGS) $(LUA_CFLAGS) -I@includedir@
 
-liblua@LUA_VERSION@_sofia_glib_la_LDFLAGS = -L@libdir@ $(SOFIA_SIP_UA_GLIB_LIBS) $(LUA_LIBS) -version-info @LT_VERSION@
+liblua@LUA_VERSION@_sofia_glib_la_LDFLAGS = -L@libdir@ $(SOFIA_SIP_UA_GLIB_LIBS) -version-info @LT_VERSION@
 
 liblua@LUA_VERSION@_sofia_glib_la_LIBADD = liblua@LUA_VERSION@-sofia.la
 
