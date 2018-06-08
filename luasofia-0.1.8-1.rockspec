@@ -1,16 +1,16 @@
 -- This file was automatically generated for the LuaDist project.
 
 package="luasofia"
-version="0.1.7-1"
+version="0.1.8-1"
 -- LuaDist source
 source = {
-  tag = "0.1.7-1",
+  tag = "0.1.8-1",
   url = "git://github.com/LuaDist-testing/luasofia.git"
 }
 -- Original source
 -- source = {
---    url = "http://downloads.sourceforge.net/project/luasofia/luasofia-0.1.7.tar.gz",
---    md5 = "d40806ee567dfed35a21226569e6ced2",
+--    url = "http://downloads.sourceforge.net/project/luasofia/luasofia-0.1.8.tar.gz",
+--    md5 = "8ab01109cec9a0d0d775e1d3090f571d",
 -- }
 description = {
    summary  = "LuaSofia is a Lua binding of Sofia-Sip library",
@@ -29,6 +29,6 @@ dependencies = {
 
 build = {
    type = "command",
-   build_command = "LUA_CMODULE=$(PREFIX)/lib ./configure --prefix=$(PREFIX) --libdir=$(PREFIX)/lib_version && make",
+   build_command = "CFLAGS='$(CFLAGS)' LUA_CMODULE=$(PREFIX)/lib ./configure --prefix=$(PREFIX) --libdir=$(PREFIX)/lib_version && make",
    install_command = "make install",
 }
